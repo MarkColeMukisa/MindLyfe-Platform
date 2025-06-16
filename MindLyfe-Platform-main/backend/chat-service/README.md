@@ -434,4 +434,4 @@ Proprietary - MindLyf Platform
 
 For questions or support, reach out to the MindLyf development team.
 
-By MarkCole The Incredible 🤘
+Edited by MarkCole The Incredible 🤘
