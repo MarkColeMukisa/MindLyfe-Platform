@@ -1,0 +1,488 @@
+services:
+  api-gateway:
+    build:
+      context: ./api-gateway
+      dockerfile: Dockerfile.dev
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./api-gateway:/app
+      - /app/node_modules
+    environment:
+      - NODE_ENV=development
+      - PORT=3000
+      - JWT_SECRET=mindlyf-auth-secret-key-dev
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - AUTH_SERVICE_URL=http://auth-service:3001
+      - TELETHERAPY_SERVICE_URL=http://teletherapy-service:3002
+      - CHAT_SERVICE_URL=http://chat-service:3003
+      - COMMUNITY_SERVICE_URL=http://community-service:3004
+      - NOTIFICATION_SERVICE_URL=http://notification-service:3005
+      - PAYMENT_SERVICE_URL=http://payment-service:3006
+      - RESOURCES_SERVICE_URL=http://resources-service:3007
+      - AI_SERVICE_URL=http://ai-service:8000
+      - JOURNAL_SERVICE_URL=http://journal-service:8001
+      - RECOMMENDER_SERVICE_URL=http://recommender-service:8002
+      - LYFBOT_SERVICE_URL=http://lyfbot-service:8003
+      - CORS_ORIGIN=http://localhost:3000
+      - REPORTING_SERVICE_URL=http://reporting-service:3009
+      - GAMIFICATION_SERVICE_URL=http://gamification-service:3010
+    depends_on:
+      - redis
+      - auth-service
+      - teletherapy-service
+      - chat-service
+      - community-service
+      - notification-service
+      - payment-service
+      - resources-service
+      - ai-service
+      - journal-service
+      - recommender-service
+      - lyfbot-service
+      - reporting-service
+      - gamification-service
+    networks:
+      - mindlyf-network
+
+  auth-service:
+    build:
+      context: ./auth-service
+      dockerfile: Dockerfile.dev
+    ports:
+      - "3001:3001"
+    volumes:
+      - ./auth-service:/app
+      - /app/node_modules
+    environment:
+      - NODE_ENV=development
+      - PORT=3001
+      - DB_TYPE=postgres
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_USERNAME=postgres
+      - DB_PASSWORD=postgres
+      - DB_NAME=mindlyf_auth
+      - DB_SYNCHRONIZE=true
+      - DB_LOGGING=true
+      - JWT_SECRET=mindlyf-auth-secret-key-dev
+      - JWT_EXPIRES_IN=15m
+      - JWT_REFRESH_EXPIRES_IN=7d
+      - JWT_SERVICE_SECRET=mindlyf-service-secret-key-dev
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - FRONTEND_URL=http://localhost:3000
+      - NOTIFICATION_SERVICE_URL=http://notification-service:3005
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      - mindlyf-network
+
+  teletherapy-service:
+    build:
+      context: ./teletherapy-service
+      dockerfile: Dockerfile.dev
+    ports:
+      - "${TELETHERAPY_SERVICE_PORT:-3002}:3002"
+      # MediaSoup RTC port range for WebRTC media
+      - "10000-10100:10000-10100/udp"
+    volumes:
+      - ./teletherapy-service:/app
+      - /app/node_modules
+      - ./teletherapy-service/recordings:/app/recordings
+    environment:
+      - NODE_ENV=development
+      - PORT=3002
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_USERNAME=postgres
+      - DB_PASSWORD=postgres
+      - DB_NAME=mindlyf_teletherapy
+      - DB_SYNC=true
+      - DB_LOGGING=true
+      - JWT_SECRET=mindlyf-auth-secret-key-dev
+      - AUTH_SERVICE_URL=http://auth-service:3001
+      - CHAT_SERVICE_URL=http://chat-service:3003
+      - NOTIFICATION_SERVICE_URL=http://notification-service:3005
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      # MediaSoup Configuration
+      - MEDIASOUP_MIN_PORT=10000
+      - MEDIASOUP_MAX_PORT=10100
+      - MEDIASOUP_LISTEN_IP=0.0.0.0
+      - MEDIASOUP_ANNOUNCED_IP=${MEDIASOUP_ANNOUNCED_IP:-}
+      # Recording Configuration
+      - RECORDINGS_PATH=/app/recordings
+      - MAX_RECORDING_DURATION=7200
+      - RECORDING_ENABLED=true
+    depends_on:
+      - postgres
+      - redis
+      - auth-service
+    networks:
+      - mindlyf-network
+
+  chat-service:
+    build:
+      context: ./chat-service
+      dockerfile: Dockerfile.dev
+    ports:
+      - "3003:3003"
+    volumes:
+      - ./chat-service:/app
+      - /app/node_modules
+    environment:
+      - NODE_ENV=development
+      - PORT=3003
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_USERNAME=postgres
+      - DB_PASSWORD=postgres
+      - DB_NAME=mindlyf_chat
+      - DB_SYNC=true
+      - DB_LOGGING=true
+      - JWT_SECRET=mindlyf-auth-secret-key-dev-secure-32-chars
+      - AUTH_SERVICE_URL=http://auth-service:3001
+      - TELETHERAPY_SERVICE_URL=http://teletherapy-service:3002
+      - COMMUNITY_SERVICE_URL=http://community-service:3004
+      - NOTIFICATION_SERVICE_URL=http://notification-service:3005
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+    depends_on:
+      - postgres
+      - redis
+      - auth-service
+    networks:
+      - mindlyf-network
+
+  community-service:
+    build:
+      context: ./community-service
+      dockerfile: Dockerfile.dev
+    ports:
+      - "3004:3004"
+    volumes:
+      - ./community-service:/app
+      - /app/node_modules
+    environment:
+      - NODE_ENV=development
+      - PORT=3004
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_USERNAME=postgres
+      - DB_PASSWORD=postgres
+      - DB_NAME=mindlyf_community
+      - DB_SYNC=true
+      - DB_LOGGING=true
+      - JWT_SECRET=mindlyf-auth-secret-key-dev
+      - AUTH_SERVICE_URL=http://auth-service:3001
+      - NOTIFICATION_SERVICE_URL=http://notification-service:3005
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+    depends_on:
+      - postgres
+      - redis
+      - auth-service
+    networks:
+      - mindlyf-network
+
+  notification-service:
+    build:
+      context: ./notification-service
+      dockerfile: Dockerfile.dev
+    ports:
+      - "3005:3005"
+    volumes:
+      - ./notification-service:/app
+      - /app/node_modules
+    environment:
+      - NODE_ENV=development
+      - PORT=3005
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_USERNAME=postgres
+      - DB_PASSWORD=postgres
+      - DB_NAME=mindlyf_notification
+      - DB_SYNC=true
+      - DB_LOGGING=true
+      - JWT_SECRET=mindlyf-auth-secret-key-dev
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - AWS_REGION=us-east-1
+      - AWS_ACCESS_KEY_ID=your-aws-access-key
+      - AWS_SECRET_ACCESS_KEY=your-aws-secret-key
+      - AWS_SES_SOURCE_EMAIL=noreply@mindlyf.com
+      - AUTH_SERVICE_URL=http://auth-service:3001
+      - FRONTEND_URL=http://localhost:3000
+    depends_on:
+      - postgres
+      - redis
+      - auth-service
+    networks:
+      - mindlyf-network
+
+  payment-service:
+    build:
+      context: ./payment-service
+      dockerfile: Dockerfile.dev
+    ports:
+      - "3006:3006"
+    volumes:
+      - ./payment-service:/app
+      - /app/node_modules
+    environment:
+      - NODE_ENV=development
+      - PORT=3006
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_USERNAME=postgres
+      - DB_PASSWORD=password
+      - DB_NAME=mindlyf_payment
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - JWT_SECRET=mindlyf-payment-service-secret
+      - AUTH_SERVICE_TOKEN=mindlyf-auth-service-token
+      - NOTIFICATION_SERVICE_URL=http://notification-service:3005
+      - NOTIFICATION_SERVICE_TOKEN=mindlyf-notification-service-token
+      # DPO Pay Configuration (Primary Gateway)
+      - DEFAULT_PAYMENT_GATEWAY=dpo
+      - DPO_COMPANY_TOKEN=${DPO_COMPANY_TOKEN:-}
+      - DPO_API_URL=https://secure.3gdirectpay.com/API/v6/
+      - DPO_TEST_MODE=true
+      - DPO_WEBHOOK_URL=http://localhost:3006/api/payments/webhook/dpo
+      - DPO_REDIRECT_URL=http://localhost:3000/payment/success
+      - DPO_BACK_URL=http://localhost:3000/payment/cancel
+      # Stripe Configuration (Secondary Gateway)
+      - STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY:-}
+      - STRIPE_PUBLISHABLE_KEY=${STRIPE_PUBLISHABLE_KEY:-}
+      - STRIPE_WEBHOOK_SECRET=${STRIPE_WEBHOOK_SECRET:-}
+      - STRIPE_API_VERSION=2023-10-16
+      # PayPal Configuration
+      - PAYPAL_CLIENT_ID=${PAYPAL_CLIENT_ID:-}
+      - PAYPAL_CLIENT_SECRET=${PAYPAL_CLIENT_SECRET:-}
+      - PAYPAL_MODE=sandbox
+      - PAYPAL_WEBHOOK_ID=${PAYPAL_WEBHOOK_ID:-}
+      # Localization Settings
+      - DEFAULT_CURRENCY=UGX
+      - DEFAULT_COUNTRY=UG
+      - SUPPORTED_CURRENCIES=UGX,KES,TZS,RWF,GHS,ZMW,XOF,NAD,BWP,ZAR,MWK,NGN,AED,ETB,MZN,AOA,XAF,CDF,USD,EUR,GBP
+      - GEO_IP_SERVICE_URL=${GEO_IP_SERVICE_URL:-}
+      # Currency Converter Settings
+      - EXCHANGE_RATE_API_KEY=${EXCHANGE_RATE_API_KEY:-}
+      - FIXER_API_KEY=${FIXER_API_KEY:-}
+      - CURRENCY_API_KEY=${CURRENCY_API_KEY:-}
+      - CURRENCY_CACHE_EXPIRY=15
+      - FALLBACK_RATES_ENABLED=true
+    depends_on:
+      - postgres
+      - redis
+      - auth-service
+      - notification-service
+    networks:
+      - mindlyf-network
+
+  resources-service:
+    build:
+      context: ./resources-service
+      dockerfile: Dockerfile.dev
+    ports:
+      - "3007:3007"
+    volumes:
+      - ./resources-service:/app
+      - /app/node_modules
+      - ./resources-service/uploads:/app/uploads
+    environment:
+      - NODE_ENV=development
+      - PORT=3007
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_USERNAME=postgres
+      - DB_PASSWORD=postgres
+      - DB_NAME=mindlyf_resources
+      - DB_SYNC=true
+      - DB_LOGGING=true
+      - JWT_SECRET=mindlyf-auth-secret-key-dev
+      - JWT_SERVICE_SECRET=mindlyf-service-secret-key-dev
+      - AUTH_SERVICE_URL=http://auth-service:3001
+      - NOTIFICATION_SERVICE_URL=http://notification-service:3005
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - UPLOAD_DESTINATION=./uploads
+      - MAX_FILE_SIZE=10485760
+    depends_on:
+      - postgres
+      - redis
+      - auth-service
+    networks:
+      - mindlyf-network
+
+  ai-service:
+    build:
+      context: ./ai-service
+      dockerfile: Dockerfile.dev
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./ai-service:/app
+    environment:
+      - ENVIRONMENT=development
+      - OPENAI_API_KEY=your-openai-api-key
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/mindlyf_ai
+      - REDIS_URL=redis://redis:6379/0
+      - AUTH_SERVICE_URL=http://auth-service:3001
+      - JWT_SECRET=mindlyf-auth-secret-key-dev
+      - SECRET_KEY=mindlyf-ai-service-secret-key-dev
+      - CORS_ORIGINS=http://localhost:3000,http://localhost:3001,http://localhost:8000
+    depends_on:
+      - postgres
+      - redis
+      - auth-service
+    networks:
+      - mindlyf-network
+
+  journal-service:
+    build:
+      context: ./journal-service
+      dockerfile: Dockerfile.dev
+    ports:
+      - "8001:8000"
+    volumes:
+      - ./journal-service:/app
+    environment:
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/mindlyfe_journal
+      - AI_SERVICE_URL=http://ai-service:8000
+      - AUTH_SERVICE_URL=http://auth-service:3001
+      - NOTIFICATION_SERVICE_URL=http://notification-service:3005
+      - CORS_ORIGINS=http://localhost:3000,http://localhost:3001,http://localhost:8000
+    depends_on:
+      - postgres
+      - ai-service
+
+  recommender-service:
+    build:
+      context: ./recommender-service
+      dockerfile: Dockerfile.dev
+    ports:
+      - "8002:8000"
+    volumes:
+      - ./recommender-service:/app
+    environment:
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/mindlyfe_recommender
+      - AI_SERVICE_URL=http://ai-service:8000
+      - AUTH_SERVICE_URL=http://auth-service:3001
+      - CORS_ORIGINS=http://localhost:3000,http://localhost:3001,http://localhost:8000
+    depends_on:
+      - postgres
+      - ai-service
+
+  lyfbot-service:
+    build:
+      context: ./lyfbot-service
+      dockerfile: Dockerfile.dev
+    ports:
+      - "8003:8000"
+    volumes:
+      - ./lyfbot-service:/app
+    environment:
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/mindlyfe_lyfbot
+      - AI_SERVICE_URL=http://ai-service:8000
+      - AUTH_SERVICE_URL=http://auth-service:3001
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - CORS_ORIGINS=http://localhost:3000,http://localhost:3001,http://localhost:8000
+    depends_on:
+      - postgres
+      - ai-service
+
+  reporting-service:
+    build:
+      context: ./reporting-service
+      dockerfile: Dockerfile.dev
+    ports:
+      - "3009:3009"
+    volumes:
+      - ./reporting-service:/app
+      - /app/node_modules
+    environment:
+      - NODE_ENV=development
+      - PORT=3009
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_USERNAME=postgres
+      - DB_PASSWORD=postgres
+      - DB_NAME=mindlyf_reporting
+      - DB_SYNC=true
+      - DB_LOGGING=true
+      - JWT_SECRET=mindlyf-auth-secret-key-dev
+      - AUTH_SERVICE_URL=http://auth-service:3001
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+    depends_on:
+      - postgres
+      - redis
+      - auth-service
+    networks:
+      - mindlyf-network
+
+  gamification-service:
+    build:
+      context: ./gamification-service
+      dockerfile: Dockerfile.dev
+    ports:
+      - "3010:3010"
+    volumes:
+      - ./gamification-service:/app
+      - /app/node_modules
+    environment:
+      - NODE_ENV=development
+      - PORT=3010
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_USERNAME=postgres
+      - DB_PASSWORD=postgres
+      - DB_NAME=mindlyf_gamification
+      - DB_SYNC=true
+      - DB_LOGGING=true
+      - JWT_SECRET=mindlyf-auth-secret-key-dev
+      - AUTH_SERVICE_URL=http://auth-service:3001
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+    depends_on:
+      - postgres
+      - redis
+      - auth-service
+    networks:
+      - mindlyf-network
+
+  postgres:
+    image: postgres:15
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=mindlyf
+      - POSTGRES_MULTIPLE_DATABASES=mindlyf_auth,mindlyf_notification,mindlyf_teletherapy,mindlyf_chat,mindlyf_community,mindlyf_payment,mindlyf_resources,mindlyf_ai,mindlyf_journal,mindlyf_recommender,mindlyf_lyfbot,mindlyf_reporting,mindlyf_gamification
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./database/init-multiple-dbs.sh:/docker-entrypoint-initdb.d/init-multiple-dbs.sh
+    networks:
+      - mindlyf-network
+
+  redis:
+    image: redis:7
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    networks:
+      - mindlyf-network
+
+networks:
+  mindlyf-network:
+    driver: bridge
+
+volumes:
+  postgres-data:
+  redis-data:
